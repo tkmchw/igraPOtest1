@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СЛУЖЕБНЫЙ ДОЛГ — учебная игра</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08090c; --panel:rgba(255,255,255,.025); --line:rgba(201,166,107,.22);
+    --gold:#c8a96a; --gold-bright:#e8cf9a; --blue:#7fa8d0; --red:#c46a6a;
+    --txt:#e9e5dc; --muted:#8a8578;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--txt); min-height:100vh; overflow-x:hidden;
+    font-family:'Manrope',sans-serif;
+    background-image:
+      radial-gradient(ellipse 90% 50% at 50% -10%, rgba(200,169,106,.07), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 110%, rgba(90,120,160,.06), transparent 60%);
+  }
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.4;
+    background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+    background-size:60px 60px}
+
+  #curtain{position:fixed;inset:0;z-index:100;pointer-events:none;display:none}
+  #curtain .ct-panel{position:absolute;inset:0;
+    background:linear-gradient(180deg,#0c0e12,#11141a);
+    transform:scaleY(0);transform-origin:top}
+  #curtain .ct-panel::after{content:'';position:absolute;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);
+    box-shadow:0 0 40px rgba(200,169,106,.6)}
+  #curtain.cover .ct-panel{transform-origin:top;animation:ctCover .45s cubic-bezier(.65,0,.35,1) forwards}
+  #curtain.cover .ct-panel::after{bottom:0}
+  #curtain.reveal .ct-panel{transform:scaleY(1);transform-origin:bottom;
+    animation:ctReveal .5s cubic-bezier(.65,0,.35,1) forwards}
+  #curtain.reveal .ct-panel::after{top:0}
+  @keyframes ctCover{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  @keyframes ctReveal{from{transform:scaleY(1)}to{transform:scaleY(0)}}
+  .ct-emblem{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-family:'Cormorant Garamond',serif;font-size:5em;color:var(--gold);
+    opacity:0;text-shadow:0 0 60px rgba(200,169,106,.5)}
+  #curtain.cover .ct-emblem{animation:ctEmblem .7s ease forwards}
+  @keyframes ctEmblem{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+    45%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+  .page.leaving{animation:pageLeave .4s ease forwards!important}
+  @keyframes pageLeave{to{opacity:0;filter:blur(6px);transform:translateY(-20px)}}
+
+  .sig{position:absolute;bottom:14px;left:16px;z-index:5;
+    font-family:'Oswald';font-weight:300;font-size:.62em;letter-spacing:.32em;
+    text-transform:lowercase;color:rgba(138,133,120,.28);
+    padding:5px 12px;border:1px solid rgba(138,133,120,.1);border-radius:2px;
+    background:rgba(8,9,12,.5);transition:color .5s,border-color .5s;user-select:none}
+  .sig:hover{color:rgba(200,169,106,.75);border-color:rgba(200,169,106,.3)}
+  .sig b{font-weight:500;color:inherit}
+
+  .page{display:none;max-width:1240px;margin:0 auto;padding:7vh 40px 80px;position:relative;z-index:1}
+  .page.active{display:block;animation:reveal .9s cubic-bezier(.22,1,.36,1) both}
+  @keyframes reveal{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+
+  .emblem{width:130px;height:130px;margin:0 auto 38px;position:relative}
+  .emblem .ring{position:absolute;inset:0;border:1px solid var(--line);border-radius:50%;animation:spin 24s linear infinite}
+  .emblem .ring::before{content:'';position:absolute;top:-4px;left:50%;width:7px;height:7px;margin-left:-3.5px;
+    background:var(--gold);border-radius:50%;box-shadow:0 0 12px var(--gold)}
+  .emblem .ring2{inset:12px;border-color:rgba(200,169,106,.12);animation-duration:38s;animation-direction:reverse}
+  .emblem .core{position:absolute;inset:26px;border:1px solid var(--line);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 35% 30%,rgba(200,169,106,.12),rgba(0,0,0,.4));
+    font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--gold);
+    box-shadow:0 0 50px rgba(200,169,106,.12), inset 0 0 25px rgba(200,169,106,.08)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .overline{text-align:center;letter-spacing:.45em;text-transform:uppercase;font-size:.72em;
+    color:var(--muted);margin-bottom:22px;font-weight:500}
+  h1{font-family:'Cormorant Garamond',serif;text-align:center;font-size:4.4em;font-weight:600;
+    letter-spacing:.12em;color:var(--gold-bright);line-height:1.05;
+    text-shadow:0 0 60px rgba(200,169,106,.25)}
+  .subtitle{text-align:center;color:var(--muted);font-size:1.08em;font-weight:300;margin:26px auto 0;max-width:640px;line-height:2}
+  .rule-line{width:70px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:35px auto}
+  .center{text-align:center}
+
+  .btn{
+    display:inline-block;padding:17px 62px;font-size:.82em;cursor:pointer;border:1px solid var(--gold);
+    background:transparent;color:var(--gold-bright);font-family:'Manrope';font-weight:600;
+    letter-spacing:.35em;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .4s, box-shadow .4s, transform .3s;border-radius:2px}
+  .btn::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,var(--gold),var(--gold-bright));
+    transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.22,1,.36,1);z-index:0}
+  .btn:hover{color:#0a0a0c;box-shadow:0 10px 40px rgba(200,169,106,.3);transform:translateY(-2px)}
+  .btn:hover::before{transform:scaleX(1)}
+  .btn span{position:relative;z-index:1}
+  .btn.ghost{border-color:rgba(127,168,208,.5);color:var(--blue)}
+  .btn.ghost::before{background:linear-gradient(120deg,var(--blue),#a9c8e8)}
+
+  .rules-head{max-width:800px;margin:0 auto;text-align:center}
+  .rules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1120px;margin:50px auto 45px}
+  .rcard{background:var(--panel);border:1px solid rgba(255,255,255,.07);border-radius:3px;
+    padding:34px 30px;position:relative;transition:all .4s}
+  .rcard:hover{border-color:var(--line);transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.45)}
+  .rcard::before{content:attr(data-n);position:absolute;top:20px;right:24px;
+    font-family:'Oswald';font-weight:300;font-size:2.6em;color:rgba(200,169,106,.14);line-height:1}
+  .rcard .ricon{font-size:1.7em;color:var(--gold);margin-bottom:18px;display:block}
+  .rcard h3{font-family:'Manrope';font-size:.85em;letter-spacing:.25em;text-transform:uppercase;
+    color:var(--gold-bright);margin-bottom:14px;font-weight:700}
+  .rcard p{font-size:.95em;font-weight:300;line-height:1.75;color:#cfcabd}
+  .rcard.wide{grid-column:span 3;display:flex;align-items:center;gap:34px;padding:30px 40px}
+  .rcard.wide .ricon{margin:0;font-size:2em}
+  .rcard.wide::before{font-size:3.4em;top:50%;transform:translateY(-50%)}
+  .rcard .accent{color:var(--gold-bright);font-weight:600}
+
+  .topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-bottom:40px;
+    padding:22px 44px;border:1px solid rgba(255,255,255,.06);border-radius:3px;background:var(--panel)}
+  .score{display:flex;align-items:center;gap:16px}
+  .score.c1{justify-self:start} .score.c2{justify-self:end;flex-direction:row-reverse}
+  .score .lbl{font-size:.75em;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:10px}
+  .score .lbl i{font-style:normal;width:10px;height:10px;border-radius:50%;box-shadow:0 0 12px currentColor}
+  .score.c1 .lbl i{background:var(--blue);color:var(--blue)}
+  .score.c2 .lbl i{background:var(--red);color:var(--red)}
+  .score .val{font-family:'Oswald';font-weight:500;font-size:2.8em;line-height:1;
+    min-width:110px;text-align:center;letter-spacing:.03em;transition:transform .3s}
+  .score.c1 .val{color:var(--blue)} .score.c2 .val{color:var(--red)}
+  .score .val.bump{transform:scale(1.3)}
+  .qbadge{font-size:.72em;letter-spacing:.4em;text-transform:uppercase;color:var(--muted);text-align:center}
+  .qbadge b{color:var(--gold);font-family:'Oswald';font-weight:500;font-size:1.3em;letter-spacing:.1em}
+
+  .timer-zone{display:flex;justify-content:center;margin-bottom:44px;min-height:200px;align-items:center}
+  #timerBtn{padding:20px 80px}
+  #timerCircle{width:190px;height:190px;position:relative;display:none}
+  #timerCircle svg{transform:rotate(-90deg)}
+  #timerCircle .time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  #timeText{font-family:'Oswald';font-weight:400;font-size:3.4em;color:var(--gold-bright);
+    letter-spacing:.06em;font-variant-numeric:tabular-nums;line-height:1}
+  #timerCircle .time small{font-family:'Manrope';font-size:.62em;letter-spacing:.4em;color:var(--muted);
+    text-transform:uppercase;margin-top:6px;font-weight:500}
+  #timerCircle.warn #timeText{color:#e07a7a;text-shadow:0 0 25px rgba(224,122,122,.4)}
+  #timerCircle.timeout{animation:timeoutFlash .35s ease 3}
+  @keyframes timeoutFlash{50%{filter:brightness(2.2)}}
+
+  .situation{max-width:1080px;margin:0 auto;padding:52px 70px;position:relative;
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .situation::before{content:'№';position:absolute;top:30px;right:44px;
+    font-family:'Cormorant Garamond',serif;font-size:6em;color:rgba(200,169,106,.07);line-height:1}
+  .situation .num{letter-spacing:.45em;text-transform:uppercase;font-size:.72em;color:var(--gold);
+    margin-bottom:26px;display:flex;align-items:center;gap:18px}
+  .situation .num::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+  .situation .text{font-family:'Cormorant Garamond',serif;font-size:1.6em;font-weight:500;
+    line-height:1.65;color:var(--txt)}
+  .situation .motto{margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,.05);
+    font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.15em;
+    color:var(--muted);line-height:1.7}
+  .situation .motto b{color:var(--gold);font-style:normal;font-weight:600;letter-spacing:.15em;
+    text-transform:uppercase;font-family:'Manrope';font-size:.78em}
+  .situation.swap{animation:swapIn .6s cubic-bezier(.22,1,.36,1) both}
+  @keyframes swapIn{from{opacity:0;transform:translateY(25px) scale(.985);filter:blur(4px)}
+    to{opacity:1;transform:none;filter:none}}
+
+  /* Кнопки навигации назад/вперёд в углу ситуации */
+  .navBtns{position:absolute;bottom:18px;left:20px;display:flex;gap:10px;z-index:3}
+  .navBtn{width:44px;height:44px;
+    border-radius:50%;border:1px solid rgba(200,169,106,.3);background:rgba(8,9,12,.5);
+    color:rgba(200,169,106,.55);font-size:1.15em;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .35s}
+  .navBtn:hover{border-color:var(--gold);color:var(--gold-bright);
+    box-shadow:0 0 25px rgba(200,169,106,.25)}
+  .navBtn.hidden{display:none}
+  .backBtn:hover{transform:translateX(-3px)}
+  .fwdBtn:hover{transform:translateX(3px)}
+
+  .teamBtns{display:flex;gap:26px;max-width:1080px;margin:40px auto 0;align-items:stretch}
+  .team{flex:1;padding:40px 36px;cursor:pointer;border-radius:3px;text-align:left;position:relative;overflow:hidden;
+    background:var(--panel);border:1px solid rgba(255,255,255,.08);color:var(--txt);
+    font-family:'Manrope';transition:all .35s}
+  .team .tname{font-size:1.3em;letter-spacing:.25em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:16px}
+  .team .tname i{font-style:normal;width:14px;height:14px;border-radius:50%;box-shadow:0 0 16px currentColor;flex-shrink:0}
+  .team .tdesc{font-size:.82em;color:var(--muted);margin-top:12px;font-weight:300;line-height:1.6}
+  .team .tpts{margin-top:20px;font-family:'Oswald';font-weight:500;font-size:2.1em;letter-spacing:.05em;
+    display:flex;align-items:baseline;gap:10px}
+  .team .tpts small{font-family:'Manrope';font-size:.38em;letter-spacing:.3em;text-transform:uppercase;
+    color:var(--muted);font-weight:500}
+  .team .arrow{position:absolute;right:26px;top:50%;transform:translateY(-50%);font-size:1.7em;opacity:0;transition:all .35s}
+  .team:hover{transform:translateY(-4px)}
+  .team.t1 .tname i, .team.t1 .tpts{color:var(--blue)}
+  .team.t2 .tname i, .team.t2 .tpts{color:var(--red)}
+  .team.t1:hover{border-color:var(--blue);background:rgba(127,168,208,.07);box-shadow:0 20px 60px rgba(127,168,208,.18)}
+  .team.t2:hover{border-color:var(--red);background:rgba(196,106,106,.07);box-shadow:0 20px 60px rgba(196,106,106,.18)}
+  .team:hover .arrow{opacity:1;right:20px}
+
+  .optBtn{flex:0 0 240px;cursor:pointer;border-radius:3px;text-align:center;position:relative;
+    background:transparent;font-family:'Manrope';transition:all .35s;padding:20px 18px;
+    display:flex;flex-direction:column;justify-content:center;gap:10px}
+  .optBtn .sp-icon{font-size:1.6em}
+  .optBtn .sp-name{font-size:.72em;letter-spacing:.25em;text-transform:uppercase;font-weight:700}
+  .optBtn .sp-pts{font-family:'Oswald';font-weight:500;font-size:1.5em}
+  .optBtn .sp-desc{font-size:.72em;font-weight:300;line-height:1.5}
+  .splitBtn{border:1px dashed rgba(200,169,106,.4);color:var(--muted)}
+  .splitBtn .sp-icon,.splitBtn .sp-pts{color:var(--gold)}
+  .splitBtn:hover{border-color:var(--gold);color:var(--gold-bright);background:rgba(200,169,106,.05);
+    transform:translateY(-3px);box-shadow:0 12px 40px rgba(200,169,106,.12)}
+  .burnBtn{border:1px dashed rgba(138,133,120,.35);color:var(--muted)}
+  .burnBtn .sp-icon,.burnBtn .sp-pts{color:#8a8578}
+  .burnBtn:hover{border-color:#a09a8a;color:#cfcabd;background:rgba(255,255,255,.03);
+    transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+
+  .teamBtns.locked .team,.teamBtns.locked .optBtn{pointer-events:none;opacity:.25;filter:grayscale(.9);
+    cursor:default;transform:none!important;box-shadow:none!important}
+  .teamBtns.locked .team.chosen{opacity:1;filter:none}
+  .team.chosen.t1{border-color:var(--blue);box-shadow:0 0 40px rgba(127,168,208,.3)!important}
+  .team.chosen.t2{border-color:var(--red);box-shadow:0 0 40px rgba(196,106,106,.3)!important}
+  .team.chosen .arrow{opacity:1;right:20px}
+  .splitBtn.chosen{opacity:1!important;filter:none!important;border-style:solid;border-color:var(--gold);
+    color:var(--gold-bright);box-shadow:0 0 40px rgba(200,169,106,.2)!important}
+  .burnBtn.chosen{opacity:1!important;filter:none!important;border-style:solid;border-color:#a09a8a;
+    color:#cfcabd;box-shadow:0 0 40px rgba(255,255,255,.1)!important}
+
+  .after{display:none;justify-content:center;margin-top:36px}
+  .after.show{display:flex;animation:reveal .5s ease both}
+
+  .final{display:none;min-height:80vh;flex-direction:column;justify-content:center;align-items:center;
+    position:relative;padding:40px 20px}
+  .final.show{display:flex}
+  .final-glow{position:absolute;inset:-100px;pointer-events:none;
+    background:radial-gradient(ellipse 55% 45% at 50% 42%, rgba(200,169,106,.14), transparent 70%);
+    animation:glowIn 2s ease both}
+  @keyframes glowIn{from{opacity:0}to{opacity:1}}
+  .laurel{position:absolute;top:50%;transform:translateY(-58%);font-size:9em;color:rgba(200,169,106,.14);
+    user-select:none;animation:fadeLate 1.2s .3s ease both}
+  .laurel.l{left:2%} .laurel.r{right:2%;transform:translateY(-58%) scaleX(-1)}
+  @keyframes fadeLate{from{opacity:0;transform:translateY(-58%) translateX(20px)}to{opacity:1;transform:translateY(-58%)}}
+  .laurel.r{animation-name:fadeLateR}
+  @keyframes fadeLateR{from{opacity:0;transform:translateY(-58%) scaleX(-1) translateX(20px)}to{opacity:1;transform:translateY(-58%) scaleX(-1)}}
+  .final-over{letter-spacing:.55em;text-transform:uppercase;font-size:.75em;color:var(--muted);
+    margin-bottom:26px;animation:reveal .8s .2s cubic-bezier(.22,1,.36,1) both}
+  .final-winner{display:flex;align-items:center;gap:26px;margin-bottom:14px;
+    animation:rise .9s .5s cubic-bezier(.22,1,.36,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:none}}
+  .crown{font-size:2.6em;color:var(--gold);filter:drop-shadow(0 0 18px rgba(200,169,106,.5));
+    animation:crownFloat 3s ease-in-out infinite}
+  @keyframes crownFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .winner-name{font-family:'Cormorant Garamond',serif;font-size:4.2em;font-weight:700;
+    letter-spacing:.1em;color:var(--gold-bright);text-transform:uppercase;text-align:center;
+    text-shadow:0 0 70px rgba(200,169,106,.35);line-height:1.1}
+  .winner-name.draw{color:var(--txt);text-shadow:none}
+  .final-sub{font-family:'Cormorant Garamond',serif;font-size:1.5em;font-weight:500;font-style:italic;
+    color:var(--muted);margin-bottom:60px;animation:reveal .8s .8s cubic-bezier(.22,1,.36,1) both}
+  .podium{display:flex;align-items:flex-end;gap:34px;margin-bottom:70px}
+  .podium-col{width:280px;text-align:center;animation:rise .9s cubic-bezier(.22,1,.36,1) both}
+  .podium-col.pc1{animation-delay:1.1s}
+  .podium-col.pc2{animation-delay:1.3s}
+  .podium .p-score{font-family:'Oswald';font-weight:500;font-size:6.5em;line-height:1;margin-bottom:6px}
+  .podium .p-score small{font-family:'Manrope';font-size:.16em;letter-spacing:.4em;text-transform:uppercase;
+    color:var(--muted);font-weight:500;display:block;margin-top:8px}
+  .podium .p-team{font-size:.85em;letter-spacing:.35em;text-transform:uppercase;color:var(--muted);
+    margin-top:18px;display:flex;align-items:center;justify-content:center;gap:10px}
+  .podium .p-team i{font-style:normal;width:11px;height:11px;border-radius:50%;box-shadow:0 0 14px currentColor}
+  .pc1 .p-score{color:var(--blue)} .pc1 .p-team i{background:var(--blue);color:var(--blue)}
+  .pc2 .p-score{color:var(--red)} .pc2 .p-team i{background:var(--red);color:var(--red)}
+  .podium .p-base{height:4px;margin-top:16px;border-radius:2px}
+  .pc1 .p-base{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+  .pc2 .p-base{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+  .podium-col.winnercol .p-score{color:var(--gold-bright);text-shadow:0 0 40px rgba(200,169,106,.35)}
+  .podium-col.winnercol .p-team{color:var(--gold)}
+  .podium-col.winnercol .p-team i{background:var(--gold);color:var(--gold)}
+  .podium-col.winnercol .p-base{background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  .podium-col.winnercol{animation-name:riseWin;animation-duration:1.1s}
+  @keyframes riseWin{from{opacity:0;transform:translateY(70px) scale(.9)}to{opacity:1;transform:none}}
+  .vs{font-family:'Cormorant Garamond',serif;font-size:1.6em;color:var(--muted);font-style:italic;
+    padding-bottom:60px;animation:reveal .8s 1.5s ease both}
+  .final-cta{animation:reveal .8s 1.9s ease both}
+
+  @media (max-width:1000px){
+    .rules-grid{grid-template-columns:1fr}
+    .rcard.wide{grid-column:span 1;flex-direction:column;gap:14px}
+    h1{font-size:3em}
+    .teamBtns{flex-direction:column}
+    .optBtn{flex:1 1 auto}
+    .podium{flex-direction:column;align-items:center;gap:40px}
+    .vs{padding-bottom:0}
+    .laurel{display:none}
+    .winner-name{font-size:2.6em}
+  }
+</style>
+</head>
+<body>
+
+<div id="curtain">
+  <div class="ct-panel"></div>
+  <div class="ct-emblem">⚖</div>
+</div>
+
+<!-- ── Страница 1 ── -->
+<section id="p1" class="page active">
+  <div class="sig">made by <b>tkmchw</b></div>
+  <div class="emblem">
+    <div class="ring"></div><div class="ring ring2"></div>
+    <div class="core">⚖</div>
+  </div>
+  <p class="overline">Управление в правоохранительных органах Российской Федерации</p>
+  <h1>СЛУЖЕБНЫЙ<br>ДОЛГ</h1>
+  <div class="rule-line"></div>
+  <p class="subtitle">
+    Учебная стратегическая игра для двух команд.<br>
+    Две команды — два подчинённых сотрудника. Руководитель отделения — преподаватель.<br>
+    Анализируйте служебные ситуации, принимайте решения и отстаивайте позицию,<br>
+    опираясь на парадигмы и компетенции сотрудника.
+  </p>
+  <div class="center" style="margin-top:55px">
+    <button class="btn" onclick="transitionTo(2)"><span>Правила игры</span></button>
+  </div>
+</section>
+
+<!-- ── Страница 2 ── -->
+<section id="p2" class="page">
+  <div class="sig">made by <b>tkmchw</b></div>
+  <div class="rules-head">
+    <p class="overline">Регламент проведения</p>
+    <h1 style="font-size:3em">Правила игры</h1>
+    <div class="rule-line"></div>
+  </div>
+
+  <div class="rules-grid">
+    <div class="rcard" data-n="01">
+      <span class="ricon">⚖</span>
+      <h3>Две команды</h3>
+      <p>Учебная группа делится на две команды — это два подчинённых сотрудника отделения уголовного розыска.</p>
+    </div>
+    <div class="rcard" data-n="02">
+      <span class="ricon">★</span>
+      <h3>Руководитель</h3>
+      <p>Роль руководителя отделения выполняет преподаватель — он оценивает ответы и аргументы команд.</p>
+    </div>
+    <div class="rcard" data-n="03">
+      <span class="ricon">⏱</span>
+      <h3>Таймер</h3>
+      <p>На экран выводится служебная ситуация. Организатор запускает таймер — 2 минуты на подготовку.</p>
+    </div>
+    <div class="rcard" data-n="04">
+      <span class="ricon">✦</span>
+      <h3>Ответ</h3>
+      <p>По истечении времени команда даёт ответ и обосновывает позицию, опираясь на парадигмы и компетенции сотрудника.</p>
+    </div>
+    <div class="rcard" data-n="05">
+      <span class="ricon">✓</span>
+      <h3>Оценка и баллы</h3>
+      <p>Каждая ситуация имеет свою стоимость — от 100 до 250 баллов: чем сложнее ситуация, тем выше награда. Баллы получает команда, чей аргумент одобрен руководителем.</p>
+    </div>
+    <div class="rcard" data-n="06">
+      <span class="ricon">➔</span>
+      <h3>Ход игры</h3>
+      <p>Организатор нажимает кнопку команды — баллы ситуации засчитаны. Далее — переход к следующей ситуации.</p>
+    </div>
+    <div class="rcard wide" data-n="07">
+      <span class="ricon">🏆</span>
+      <div>
+        <h3>Победитель</h3>
+        <p>Побеждает команда, набравшая <span class="accent">наибольшее количество баллов</span> по итогам всех 16 ситуаций. Стоимость ситуации указана на кнопках команд. Если ответили достойно обе — <span class="accent">разделить баллы</span> по 50. Если ни один ответ не принят — <span class="accent">баллы не начисляются</span> никому.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="center"><button class="btn" onclick="transitionTo(3,startGame)"><span>Начать игру</span></button></div>
+</section>
+
+<!-- ── Страница 3: игра ── -->
+<section id="p3" class="page">
+  <div class="sig">made by <b>tkmchw</b></div>
+  <div id="gameArea">
+    <div class="topbar">
+      <div class="score c1">
+        <span class="lbl"><i></i>Команда 1</span>
+        <span class="val" id="s1">0</span>
+      </div>
+      <div class="qbadge">Ситуация <b id="qnum">1</b> / <span id="qtotal"></span><br><span id="qcost" style="color:var(--gold)"></span></div>
+      <div class="score c2">
+        <span class="lbl"><i></i>Команда 2</span>
+        <span class="val" id="s2">0</span>
+      </div>
+    </div>
+
+    <div class="timer-zone">
+      <button id="timerBtn" class="btn ghost" onclick="startTimer()"><span>Засечь время · 2:00</span></button>
+      <div id="timerCircle">
+        <svg width="190" height="190">
+          <circle cx="95" cy="95" r="85" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="2"/>
+          <circle id="arc" cx="95" cy="95" r="85" fill="none" stroke="#c8a96a" stroke-width="2.5"
+            stroke-linecap="round" stroke-dasharray="534" stroke-dashoffset="0"/>
+        </svg>
+        <div class="time"><span id="timeText">2:00</span><small>подготовка</small></div>
+      </div>
+    </div>
+
+    <div class="situation" id="situationBox">
+      <div class="num">Служебная ситуация № <span id="qnum2">1</span></div>
+      <div class="text" id="qtext"></div>
+      <div class="motto"><b>На принятие решения ·</b> <span id="qhint"></span></div>
+      <div class="navBtns">
+        <button class="navBtn backBtn hidden" id="btnBack" title="Вернуться к предыдущей ситуации" onclick="goBack()">←</button>
+        <button class="navBtn fwdBtn hidden" id="btnFwd" title="Вернуться вперёд, где вы были" onclick="goForward()">→</button>
+      </div>
+    </div>
+
+    <div class="teamBtns" id="teamBtns">
+      <button class="team t1" id="btnT1" onclick="award(1)">
+        <div class="tname"><i></i>Команда 1</div>
+        <div class="tdesc">Аргумент принят руководителем — засчитать баллы</div>
+        <div class="tpts"><span id="pts1">+100</span> <small>баллов</small></div>
+        <div class="arrow">→</div>
+      </button>
+      <button class="team t2" id="btnT2" onclick="award(2)">
+        <div class="tname"><i></i>Команда 2</div>
+        <div class="tdesc">Аргумент принят руководителем — засчитать баллы</div>
+        <div class="tpts"><span id="pts2">+100</span> <small>баллов</small></div>
+        <div class="arrow">→</div>
+      </button>
+      <button class="optBtn splitBtn" id="btnSplit" onclick="splitPoints()">
+        <div class="sp-icon">⚖</div>
+        <div class="sp-name">Разделить баллы</div>
+        <div class="sp-pts">+50 / +50</div>
+        <div class="sp-desc">Обе команды ответили достойно</div>
+      </button>
+      <button class="optBtn burnBtn" id="btnBurn" onclick="burnPoints()">
+        <div class="sp-icon">✕</div>
+        <div class="sp-name">Баллы не начисляются</div>
+        <div class="sp-pts">0 / 0</div>
+        <div class="sp-desc">Ни один ответ не принят</div>
+      </button>
+    </div>
+
+    <div class="after" id="after">
+      <button class="btn ghost" onclick="nextQ()"><span>Следующая ситуация</span></button>
+    </div>
+  </div>
+
+  <!-- ФИНАЛ -->
+  <div class="final" id="finalScreen">
+    <div class="final-glow"></div>
+    <div class="laurel l">❦</div>
+    <div class="laurel r">❦</div>
+
+    <div class="final-over">Игра завершена · Итоги церемонии</div>
+
+    <div class="final-winner">
+      <div class="crown">♛</div>
+      <div class="winner-name" id="winnerName">—</div>
+      <div class="crown">♛</div>
+    </div>
+    <div class="final-sub" id="winnerSub">—</div>
+
+    <div class="podium">
+      <div class="podium-col pc1" id="pod1">
+        <div class="p-score" id="fs1">0<small>баллов</small></div>
+        <div class="p-team"><i></i>Команда 1</div>
+        <div class="p-base"></div>
+      </div>
+      <div class="vs">против</div>
+      <div class="podium-col pc2" id="pod2">
+        <div class="p-score" id="fs2">0<small>баллов</small></div>
+        <div class="p-team"><i></i>Команда 2</div>
+        <div class="p-base"></div>
+      </div>
+    </div>
+
+    <div class="final-cta">
+      <button class="btn" onclick="location.reload()"><span>Сыграть заново</span></button>
+    </div>
+  </div>
+</section>
+
+<script>
+const situations=[
+ {pts:100,t:"Руководитель отделения поставил задачу: подготовить справку о состоянии оперативной обстановки в городе Вологде к 16:00. В 14:30 сотрудник выяснил, что часть данных по Заречной части города ещё не поступила и справка к сроку на 100% не будет готова. Одна позиция: «молча дорабатывать и сдать, как получится». Другая: «ждать данные и срывать срок». Какая позиция вернее — и что сотрудник обязан сделать прямо сейчас?",
+  h:"Задача ещё не решена — и время уже работает против вас. Вильнёт ли ваша команда от очевидного ответа?"},
+ {pts:150,t:"Руководитель поручил сотруднику провести проверку по адресу: улица Зосимовская, 34. Сотрудник твёрдо уверен, что сначала правильнее проверить адрес на Советском проспекте — там, по его сведениям, находится сам подозреваемый. Он не отказывается от задания открыто, но в процессе «по пути» самовольно меняет порядок объезда. По формальному признаку он задание выполняет. Есть ли здесь нарушение — и если да, то на каком именно шаге оно возникло?",
+  h:"Формально задание исполнено. Значит ли это, что нарушений нет? Здесь грань тоньше, чем кажется."},
+ {pts:100,t:"Сотрудник получил задание и, не вникая в его содержание, немедленно выехал в Верхний Посад. В процессе выяснилось, что он готовил не тот документ по объекту на улице Чехова. Сотрудник оправдывается: «задание и так было понятно, я сэкономил время». Проверьте его логику: где именно произошла ошибка — в исполнении, в понимании задания или ещё раньше?",
+  h:"Колёса уже закрутились — но в какую сторону? Найдите точку, где всё пошло не так."},
+ {pts:250,t:"Сотрудник обнаружил в системе учёта материалов по кражам в Вологодском районе ошибку, из-за которой дело может развалиться в суде. Доклад руководителю займёт время, а исправить он может сам за десять минут. Одна позиция: «исправить самому, а доложить потом — результат же есть». Другая: «сначала доложить, ничего не трогать». Обе позиции звучат разумно — докажите, какая из них выдерживает проверку парадигмами, а какая содержит скрытую ловушку.",
+  h:"Две верные на вид позиции против друг друга. Зал ждёт, какая команда разберёт их глубже."},
+ {pts:200,t:"Сотруднику поручили оформить материалы по делу с улицы Мальцева. В ходе работы он увидел, что по смежному эпизоду в Мокринском переулке «плывёт» срок давности, и по собственной инициативе запросил документы по нему, затянув оформление основного задания на сутки. Сотрудник считает: «то, что не запрещено — разрешено, я действовал в интересах дела». Есть ли в его рассуждении подмена — и какая парадигма на неё отвечает?",
+  h:"Аргумент «в интересах дела» звучит сильно. Но выдержит ли он встречный вопрос?"},
+ {pts:100,t:"Сотрудник, выполнив проверку по адресу: улица Ильюшина, 6, никому об этом не доложил, посчитав, что «работа же сделана». На следующий день выяснился сбой. Сотрудник возражает: «доклад — это формальность, главное результат». Разверните его же логику против него: что на самом деле не завершено в «завершённой» работе?",
+  h:"Работа сделана — но сделана ли она полностью? Ответьте и докажите."},
+ {pts:150,t:"Сотрудник дважды в день отчитывается руководителю даже о мелких задачах, отнимая время у себя и руководителя, а по сложному заданию в Сокольском направлении пропустил срок доклада. Сотрудник объясняет: «я же стараюсь докладывать чаще — это и есть контроль». В его объяснении одна деталь превращает «старание» в ошибку. Найдите её и назовите, от чего на самом деле зависит частота доклада.",
+  h:"С одной стороны — контроль, с другой — эффективность. Где та самая золотая середина?"},
+ {pts:150,t:"Сотрудник выполняет задание по делопроизводству в отделе на улице Мира. Он уверен, что порядок должен быть иным — и, по его мнению, его способ даже лучше. Он молча делает «по-своему», и результат не совпадает с требованиями. Защитники сотрудника говорят: «он действовал из лучших побуждений». Оппоненты: «лучшими побуждениями нарушается дисциплина». Выберите сторону — но так, чтобы руководитель не смог найти дыру в вашей аргументации.",
+  h:"Две стороны — одна позиция сильнее. Какую выберете и чем её закроете?"},
+ {pts:150,t:"Руководитель поручил молодому сотруднику подготовить совместно с УМВД России по Вологодской области оперативно-профилактическое мероприятие целиком. Сотрудник пытается сделать всё сам, не распределяя задачи, и не успевает. Одна позиция: «надо было попросить помощи — это и есть делегирование». Другая: «делегировать должен руководитель, а не сотрудник». В обеих позициях есть доля правды — разделите их точно: где делегирование уместно, а где подменяется перекладыванием ответственности?",
+  h:"Одному — как без рук. Но в чём именно вина? Тонкость здесь в формулировке."},
+ {pts:200,t:"Во время совещания в актовом зале УМВД по г. Вологде гражданин в грубой форме оскорбил сотрудника. Сотрудник ответил тем же, сорвав совещание. Сотрудник оправдывается: «я же человек, а не робот». Согласиться с этим — значит оправдать срыв. Отвергнуть — значит притвориться, что эмоций не существует. Найдите третий путь: какие компетенции позволили бы сотруднику сохранить и достоинство, и служебную дисциплину?",
+  h:"Секунда — и ситуация вышла из-под контроля. Не «что он сделал не так», а «как надо было». Докажите."},
+ {pts:150,t:"Сотрудник обещал руководителю доложить о выполнении задания по адресу: улица Ленинградская, 126, к 15:00, но доложил в 17:00, поскольку «был занят другой работой». Сотрудник считает: «другая работа была срочнее — я расставил приоритеты правильно». Проверьте его рассуждение на прочность: что он имел право расставлять сам, а что обязан был сделать в любом случае — независимо от занятости?",
+  h:"Слово сотрудника — тоже документ. Что здесь нарушено и чем это исправить?"},
+ {pts:100,t:"Сотрудник считает, что отдельное указание руководителя противоречит его внутренним убеждениям о методе работы. Может ли несогласие служить поводом для неисполнения указания? Если нет — перечислите все допустимые действия несогласного сотрудника и укажите момент, после которого несогласие превращается в нарушение.",
+  h:"Всё решит ваша аргументация — держите ответ уверенно."},
+ {pts:200,t:"Ночь. Дежурная смена получила ориентировку о гражданине с улицы Дежнева, причастном к серии квартирных краж. Сотрудник принял задание «отработать адрес» и выехал немедленно — время дорого. На месте выяснилось: приметы размыты, подъездов в доме четыре, нужный не установлен. Сотрудник считает, что «лучше выехать сразу и разбираться на месте». Оппонент возразит: «выезд без анализа задания — это не решительность, а лотерея». Кто прав в этой ночной ситуации — и что сотрудник был обязан сделать ещё до выезда?",
+  h:"Два часа ночи, время против точности. Найдите черту между ними и обоснуйте."},
+ {pts:200,t:"Группа сотрудников возвращалась с проверки по рынку на улице Горвалтовой, когда поступило указание руководителя: немедленно прибыть на пересечение улиц Мира и Щетинина для отработки сообщения. Один из сотрудников начал спорить о приоритетности задач прямо в пути, задержав прибытие группы. Он аргументирует: «я высказал несогласие — это моё право». В его словах есть верная часть и фатальная ошибка в одном слове. Найдите это слово: что именно он перепутал в праве на несогласие?",
+  h:"Минуты в пути решают всё. Право есть — вопрос в том, когда и как им пользоваться."},
+ {pts:250,t:"Сотрудник отделения получил задание проанализировать раскрываемость по грабежам в Вологде за квартал. Он самостоятельно передал часть работы коллеге из соседнего отдела, не уведомив руководителя, и к согласованному сроку доложил лишь частичный результат. Сотрудник ссылается: «коллега сделал лучше меня — результат же в итоге есть». Две ошибки здесь сцеплены в одну цепочку. Разъедините их: назовите каждую отдельно и укажите, какая парадигма бьёт по каждой из них.",
+  h:"Помощь коллег — это хорошо или самоволье? Разделите верное и ошибочное."},
+ {pts:100,t:"Сотрудник отдела на улице Мира закончил проверку и доложил о ней по личному телефону руководителя поздно вечером — «чтобы точно услышали», хотя установленным порядком предусмотрен доклад через дежурную часть в приёмное время. Сотрудник уверен: «доложил же — даже раньше, чем мог бы». Какие два параметра доклада он нарушил, и почему «доложить вообще» не равно «доложить правильно»?",
+  h:"Канал и срок — два ключа к одной двери. Сумеете их назвать?"}
+];
+let cur=0,s1=0,s2=0,timer=null,left=120;
+const DURATION=120, ARC=534;
+let transitioning=false;
+let backStack=[];   // история «назад»
+let fwdStack=[];    // история «вперёд» (куда можно вернуться)
+let backMode=false; // true — открыта отыгранная ситуация, кнопки баллов заблокированы
+let viewOnly=false; // true — сейчас в режиме просмотра (назад/вперёд), «следующая» работает как вперёд
+
+/* ─── Автосохранение ─── */
+function saveState(){
+  try{localStorage.setItem('sd_save',JSON.stringify({cur:cur,s1:s1,s2:s2}));}catch(e){}
+}
+function clearSave(){
+  try{localStorage.removeItem('sd_save');}catch(e){}
+}
+function restoreState(){
+  try{
+    const d=JSON.parse(localStorage.getItem('sd_save'));
+    if(d && typeof d.cur==='number' && d.cur>=0 && d.cur<situations.length){
+      cur=d.cur;s1=d.s1||0;s2=d.s2||0;return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+/* ═══ Переход-штора ═══ */
+function transitionTo(n, callback){
+  if(transitioning)return;
+  transitioning=true;
+  const curtain=document.getElementById('curtain');
+  const current=document.querySelector('.page.active');
+  if(current)current.classList.add('leaving');
+  curtain.style.display='block';
+  curtain.classList.remove('reveal');
+  curtain.classList.add('cover');
+  setTimeout(function(){
+    if(current)current.classList.remove('active','leaving');
+    document.getElementById('p'+n).classList.add('active');
+    window.scrollTo(0,0);
+    if(callback)callback();
+    curtain.classList.remove('cover');
+    curtain.classList.add('reveal');
+    setTimeout(function(){
+      curtain.style.display='none';
+      transitioning=false;
+    },550);
+  },500);
+}
+
+function curtainSwap(callback){
+  if(transitioning)return;
+  transitioning=true;
+  const curtain=document.getElementById('curtain');
+  curtain.style.display='block';
+  curtain.classList.remove('reveal');
+  curtain.classList.add('cover');
+  setTimeout(function(){
+    if(callback)callback();
+    window.scrollTo(0,0);
+    curtain.classList.remove('cover');
+    curtain.classList.add('reveal');
+    setTimeout(function(){
+      curtain.style.display='none';
+      transitioning=false;
+    },550);
+  },500);
+}
+
+function startGame(){
+  backStack=[];fwdStack=[];backMode=false;viewOnly=false;
+  if(restoreState()){
+    if(confirm("Обнаружена незавершённая игра (ситуация "+(cur+1)+", счёт "+s1+":"+s2+").\n\nOK — продолжить с сохранённого места\nОтмена — начать заново")){
+      showQ();return;
+    }
+    cur=0;s1=0;s2=0;clearSave();
+  }
+  showQ();
+}
+
+function showQ(){
+  const q=situations[cur];
+  document.getElementById('qnum').textContent=cur+1;
+  document.getElementById('qnum2').textContent=String(cur+1).padStart(2,'0');
+  document.getElementById('qtext').textContent=q.t;
+  document.getElementById('qhint').textContent=q.h;
+  document.getElementById('qcost').textContent='Стоимость ситуации · '+q.pts+' баллов';
+  document.getElementById('pts1').textContent='+'+q.pts;
+  document.getElementById('pts2').textContent='+'+q.pts;
+  document.getElementById('after').classList.remove('show');
+  const tb=document.getElementById('teamBtns');
+  if(backMode||viewOnly){
+    tb.classList.add('locked'); // ситуация уже отыграна — кнопки погашены
+  }else{
+    tb.classList.remove('locked');
+  }
+  document.getElementById('btnT1').classList.remove('chosen');
+  document.getElementById('btnT2').classList.remove('chosen');
+  document.getElementById('btnSplit').classList.remove('chosen');
+  document.getElementById('btnBurn').classList.remove('chosen');
+  // навигация: назад доступна если есть история, вперёд — если есть куда
+  document.getElementById('btnBack').classList.toggle('hidden',backStack.length===0);
+  document.getElementById('btnFwd').classList.toggle('hidden',fwdStack.length===0);
+  resetTimer();
+  if(!viewOnly)saveState();
+  const box=document.getElementById('situationBox');
+  box.classList.remove('swap');
+  void box.offsetWidth;
+  box.classList.add('swap');
+}
+
+function startTimer(){
+  clearInterval(timer);
+  left=DURATION;
+  const deadline=Date.now()+DURATION*1000;
+  document.getElementById('timerBtn').style.display='none';
+  const c=document.getElementById('timerCircle');
+  c.style.display='block';
+  c.classList.remove('warn','timeout');
+  tick(deadline);
+  timer=setInterval(function(){tick(deadline);},250);
+}
+function tick(deadline){
+  left=Math.max(0,Math.round((deadline-Date.now())/1000));
+  const m=Math.floor(left/60),s=left%60;
+  document.getElementById('timeText').textContent=m+":"+String(s).padStart(2,'0');
+  document.getElementById('arc').style.strokeDashoffset=ARC*(1-left/DURATION);
+  document.getElementById('arc').style.stroke=left<=30?'#e07a7a':'#c8a96a';
+  if(left<=30)document.getElementById('timerCircle').classList.add('warn');
+  if(left<=0){
+    clearInterval(timer);
+    document.getElementById('timerCircle').classList.add('timeout');
+  }
+}
+function resetTimer(){
+  clearInterval(timer);
+  document.getElementById('timerBtn').style.display='inline-block';
+  document.getElementById('timerCircle').style.display='none';
+  document.getElementById('arc').style.strokeDashoffset=0;
+}
+
+function bump(id){
+  const el=document.getElementById(id);
+  el.classList.add('bump');
+  setTimeout(function(){el.classList.remove('bump');},300);
+}
+
+function lockAfter(){
+  document.getElementById('teamBtns').classList.add('locked');
+  document.getElementById('after').classList.add('show');
+  saveState();
+}
+
+function award(n){
+  const tb=document.getElementById('teamBtns');
+  if(tb.classList.contains('locked'))return;
+  const pts=situations[cur].pts;
+  if(n===1){s1+=pts;document.getElementById('s1').textContent=s1;bump('s1');document.getElementById('btnT1').classList.add('chosen');}
+  else{s2+=pts;document.getElementById('s2').textContent=s2;bump('s2');document.getElementById('btnT2').classList.add('chosen');}
+  lockAfter();
+}
+
+function splitPoints(){
+  const tb=document.getElementById('teamBtns');
+  if(tb.classList.contains('locked'))return;
+  s1+=50;s2+=50;
+  document.getElementById('s1').textContent=s1;
+  document.getElementById('s2').textContent=s2;
+  bump('s1');bump('s2');
+  document.getElementById('btnSplit').classList.add('chosen');
+  lockAfter();
+}
+
+function burnPoints(){
+  const tb=document.getElementById('teamBtns');
+  if(tb.classList.contains('locked'))return;
+  document.getElementById('btnBurn').classList.add('chosen');
+  lockAfter();
+}
+
+/* Обычный ход вперёд */
+function nextQ(){
+  fwdStack=[]; // новая ветка — история «вперёд» сбрасывается
+  backStack.push({cur:cur,s1:s1,s2:s2});
+  cur++;
+  if(cur>=situations.length){
+    curtainSwap(function(){
+      showFinal();
+      clearSave();
+    });
+    return;
+  }
+  viewOnly=false;backMode=false;
+  curtainSwap(showQ);
+}
+
+/* Назад — просмотр предыдущей ситуации, счёт откачен, кнопки заблокированы */
+function goBack(){
+  if(transitioning||backStack.length===0)return;
+  // текущее состояние сохраняем в историю «вперёд»
+  fwdStack.push({cur:cur,s1:s1,s2:s2});
+  const prev=backStack.pop();
+  cur=prev.cur;s1=prev.s1;s2=prev.s2;
+  document.getElementById('s1').textContent=s1;
+  document.getElementById('s2').textContent=s2;
+  viewOnly=true;backMode=true;
+  curtainSwap(function(){
+    showQ();
+    backMode=false;
+  });
+}
+
+/* Вперёд — возврат туда, где были, со счётом и рабочим состоянием */
+function goForward(){
+  if(transitioning||fwdStack.length===0)return;
+  backStack.push({cur:cur,s1:s1,s2:s2});
+  const next=fwdStack.pop();
+  cur=next.cur;s1=next.s1;s2=next.s2;
+  document.getElementById('s1').textContent=s1;
+  document.getElementById('s2').textContent=s2;
+  viewOnly=false;backMode=false;
+  // если вернулись на последнюю отыгранную ситуацию — кнопки активны как обычно
+  curtainSwap(showQ);
+}
+
+function showFinal(){
+  clearInterval(timer);
+  document.getElementById('gameArea').style.display='none';
+  const f=document.getElementById('finalScreen');
+  f.classList.add('show');
+
+  const name=document.getElementById('winnerName');
+  const sub=document.getElementById('winnerSub');
+  const pod1=document.getElementById('pod1'), pod2=document.getElementById('pod2');
+
+  if(s1>s2){
+    name.textContent="Победила команда 1";
+    sub.textContent="«Заслуженная победа — служебный долг исполнен»";
+    pod1.classList.add('winnercol');
+    pod2.style.opacity='.45';
+  }else if(s2>s1){
+    name.textContent="Победила команда 2";
+    sub.textContent="«Заслуженная победа — служебный долг исполнен»";
+    pod2.classList.add('winnercol');
+    pod1.style.opacity='.45';
+  }else{
+    name.textContent="Ничья";
+    name.classList.add('draw');
+    sub.textContent="«Обе команды показали достойное исполнение служебного долга»";
+    document.querySelectorAll('.crown').forEach(function(c){c.style.display='none';});
+  }
+
+  document.getElementById('fs1').innerHTML=s1+'<small>баллов</small>';
+  document.getElementById('fs2').innerHTML=s2+'<small>баллов</small>';
+
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
